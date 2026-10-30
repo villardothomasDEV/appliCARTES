@@ -212,13 +212,33 @@ test('checkpoint acquis par un joueur, pénalité et retour partagés par le sui
   t.state.position=4;t.state.road[4]=card(8);Bus.reveal(t.state);t.state.deck.push(card(14));Team.predict(t,'moins');Team.advance(t);
   assert.equal(t.state.points,3);assert.equal(t.state.position,2);assert.equal(t.state.checkpoint,2);assert.equal(t.turn,0);
 });
-test('3 à 20 cartes : parcours unique, ordonné autour du centre sur mobile et ordinateur', () => {
+test('3 à 20 cartes : parcours en serpentin unique, sans saut ni chevauchement', () => {
   for(const compact of [false,true])for(let length=3;length<=20;length++){
     const layout=Layout.route(length,compact);
     assert.equal(layout.cells.length,length);
     assert.equal(new Set(layout.cells.map(c=>`${c.row},${c.col}`)).size,length);
-    assert.deepEqual(layout.cells[0],{row:1,col:1,direction:'→'});
-    for(const c of layout.cells)assert.ok(c.row===1||c.row===layout.rows||c.col===1||c.col===layout.columns);
+    assert.equal(layout.cells[0].row,1);assert.equal(layout.cells[0].col,1);
+    for(let i=1;i<length;i++){
+      const a=layout.cells[i-1],b=layout.cells[i];
+      assert.equal(Math.abs(a.row-b.row)+Math.abs(a.col-b.col),1);
+    }
     assert.ok(layout.cells.every(c=>c.row>=1&&c.row<=layout.rows&&c.col>=1&&c.col<=layout.columns));
+  }
+});
+test('2, 3 et 5 joueurs : succès suivant, erreur et retour au départ, rotation circulaire', () => {
+  for(const count of [2,3,5]){
+    const t=Team.create(Array.from({length:count},(_,i)=>'J'+i),8,[]),road=t.state.road;
+    for(let attempt=0;attempt<count*3;attempt++){
+      assert.equal(t.turn,attempt%count);
+      const at=t.state.position;
+      t.state.road[at]=card(5);Bus.reveal(t.state);
+      const success=attempt%2===0;t.state.deck.push(card(success?14:2,'♥'));
+      Team.predict(t,'plus');
+      assert.equal(t.state.position,success?at+1:0);
+      assert.equal(t.state.road[at].rank,success?14:2);
+      if(!success)assert.equal(t.state.last.penalty,at+1);
+      Team.advance(t);
+      assert.equal(t.turn,(attempt+1)%count);assert.equal(t.state.road,road);
+    }
   }
 });
