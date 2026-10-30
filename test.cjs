@@ -161,3 +161,64 @@ test('100 parties reproductibles : conservation des 52 cartes et pénalités à 
     assert.ok(recycled, 'La simulation a épuisé la pioche');
   } finally { Math.random = random; }
 });
+
+const Team = require('./team.js');
+const Layout = require('./layout.js');
+test('équipe : autoroute unique, rotation après succès ou échec et score commun', () => {
+  const team=Team.create(['Alice','Bob','Camille'],8,[2,5]);
+  const road=team.state.road;
+  team.state.road[0]=card(5);
+  Bus.reveal(team.state);team.state.deck.push(card(14,'♥'));
+  assert.equal(Team.predict(team,'plus'),true);
+  assert.equal(Team.predict(team,'plus'),false); // Pas de double tirage.
+  assert.equal(team.turn,0); // La main reste au joueur pendant l’animation du résultat.
+  assert.equal(Team.advance(team),true);
+  assert.equal(Team.advance(team),false); // Pas de double rotation.
+  assert.equal(team.turn,1);
+  assert.equal(team.state.position,1);
+  assert.equal(team.state.road,road);
+  team.state.deck.push(card(14,'♦'));
+  Bus.reveal(team.state);Team.predict(team,'moins');
+  assert.equal(team.state.points,2);
+  assert.equal(team.state.position,0);
+  Team.advance(team);
+  assert.equal(team.turn,2);
+  assert.equal(team.state.road,road);
+  team.state.deck.push(card(13,'♣'));Bus.reveal(team.state);Team.predict(team,'moins');Team.advance(team);
+  assert.equal(team.turn,0);
+  assert.equal(team.turns,3);
+  assert.equal(team.state.points,2);
+});
+test('solo, checkpoint partagé, arrivée commune et reprise de résultat sans nouveau tirage', () => {
+  let team=Team.create(['Solo'],3,[2]);
+  team.state.position=1;team.state.road[1]=card(5);
+  Bus.reveal(team.state);team.state.deck.push(card(14));Team.predict(team,'plus');
+  team=JSON.parse(JSON.stringify(team));
+  const deckSize=team.state.deck.length;
+  Team.advance(team);
+  assert.equal(team.turn,0);
+  assert.equal(team.state.checkpoint,2);
+  assert.equal(team.state.deck.length,deckSize);
+  team.state.road[2]=card(5);Bus.reveal(team.state);team.state.deck.push(card(14));Team.predict(team,'plus');Team.advance(team);
+  assert.equal(team.finished,true);
+  assert.equal(team.turns,2);
+  assert.equal(Team.advance(team),false);
+  assert.equal(Team.predict(team,'plus'),false);
+});
+test('checkpoint acquis par un joueur, pénalité et retour partagés par le suivant', () => {
+  const t=Team.create(['A','B'],8,[2,5]);
+  t.state.position=1;t.state.road[1]=card(4);Bus.reveal(t.state);t.state.deck.push(card(8));Team.predict(t,'plus');Team.advance(t);
+  assert.equal(t.turn,1);assert.equal(t.state.checkpoint,2);
+  t.state.position=4;t.state.road[4]=card(8);Bus.reveal(t.state);t.state.deck.push(card(14));Team.predict(t,'moins');Team.advance(t);
+  assert.equal(t.state.points,3);assert.equal(t.state.position,2);assert.equal(t.state.checkpoint,2);assert.equal(t.turn,0);
+});
+test('3 à 20 cartes : parcours unique, ordonné autour du centre sur mobile et ordinateur', () => {
+  for(const compact of [false,true])for(let length=3;length<=20;length++){
+    const layout=Layout.route(length,compact);
+    assert.equal(layout.cells.length,length);
+    assert.equal(new Set(layout.cells.map(c=>`${c.row},${c.col}`)).size,length);
+    assert.deepEqual(layout.cells[0],{row:1,col:1,direction:'→'});
+    for(const c of layout.cells)assert.ok(c.row===1||c.row===layout.rows||c.col===1||c.col===layout.columns);
+    assert.ok(layout.cells.every(c=>c.row>=1&&c.row<=layout.rows&&c.col>=1&&c.col<=layout.columns));
+  }
+});
