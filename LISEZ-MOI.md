@@ -54,3 +54,7 @@ Pour produire un dossier contenant uniquement les fichiers à héberger :
 Publiez le **contenu de `dist/`** sur un hébergeur statique HTTPS. Aucun build côté serveur ni variable d’environnement n’est nécessaire. `dist/` est généré à partir des sources et ignoré par Git ; la version locale à la racine reste utilisable.
 
 Autre possibilité sur GitHub après fusion de la pull request : **Settings → Pages → Deploy from a branch → main → /(root) → Save**. Une fois GitHub Pages publié, copiez l’URL HTTPS affichée dans cette page. Aucun compte n’est nécessaire pour les joueurs qui ouvrent ce lien.
+
+## Multijoueur — Test séparé
+
+La version avec plusieurs téléphones est documentée dans `multiplayer/README.md`. Elle nécessite son propre serveur. La version actuelle à la racine reste utilisable localement sur un appareil partagé.

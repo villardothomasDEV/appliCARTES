@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {SqliteStore} from '../server/node-store.mjs';
+import worker from '../.output/server/index.js';
+const sql=new SqliteStore(':memory:');
+const db={prepare(query){return {bind(...values){return {async first(){return sql.db.prepare(query).get(...values)||null},async run(){return {meta:{changes:sql.db.prepare(query).run(...values).changes}}}}}}}};
+const home=await worker.fetch(new Request('https://bus.test/multiplayer/'),{DB:db});assert.equal(home.status,200);assert.ok((await home.text()).includes('Multijoueur — Test'));
+const privateFile=await worker.fetch(new Request('https://bus.test/multiplayer/server/room.mjs'),{DB:db});assert.equal(privateFile.status,404);
+const created=await worker.fetch(new Request('https://bus.test/api/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Test Worker'})}),{DB:db});assert.equal(created.status,201);const session=await created.json();
+const resumed=await worker.fetch(new Request('https://bus.test/api/rooms/'+session.code,{headers:{Authorization:'Bearer '+session.token}}),{DB:db});assert.equal(resumed.status,200);assert.equal((await resumed.json()).me,session.me);
+sql.close();console.log('OK : Worker ESM généré, assets publics, sources privées inaccessibles et API avec binding D1.');
