@@ -45,11 +45,11 @@ Variables : `PORT` (8080), `BUS_HOST` (127.0.0.1), `BUS_DB` (`work/multiplayer.s
 Un hébergement purement statique ne suffit pas. Deux options :
 
 - **Node.js 24+ sur une instance avec volume persistant** : lancez la commande ci-dessus derrière un proxy HTTPS. Gardez le fichier SQLite sur le volume. `multiplayer/Dockerfile` prépare un conteneur (contexte de build : racine du dépôt) avec le volume `/data`. N’utilisez pas plusieurs instances indépendantes avec chacune sa propre base.
-- **Cloudflare Worker + D1** : `node multiplayer/build.mjs` construit un Worker ESM sans dépendance, avec les ressources publiques embarquées, dans `multiplayer/.output/`. Le binding `DB` et la migration SQL `multiplayer/migrations/0001_rooms.sql` sont nécessaires avant d’accepter des salons. Les écritures sont conditionnelles à la version de ligne pour éviter les courses entre plusieurs Workers.
+- **Cloudflare Worker + D1** : `node multiplayer/build.mjs` construit un Worker ESM sans dépendance, avec les ressources publiques embarquées, dans `multiplayer/.output/`. Le binding `DB` et les migrations SQL avec leur journal dans `multiplayer/drizzle/` sont nécessaires avant d’accepter des salons. Le build les place à la racine de l’archive, à côté de `dist/server/` et de `.openai/hosting.json`, pour que Sites les applique avant de publier le Worker. Les écritures sont conditionnelles à la version de ligne pour éviter les courses entre plusieurs Workers.
 
 `multiplayer/hosting.json` identifie exclusivement le projet Sites de test et son binding `DB`. Le manifeste `.openai/hosting.json` à la racine continue d’identifier la version statique actuelle. Ne remplacez pas l’un par l’autre lors d’une publication.
 
-Le Worker doit être public (sans connexion ChatGPT) pour que le lien d’invitation fonctionne. Les migrations restent versionnées et immuables. Le serveur refuse les actions d’un tour ancien et mémorise les identifiants de requête récents : réessayer la même tentative ne retire pas une seconde carte. Les mises à jour atomiques de la base protègent aussi contre deux requêtes distinctes simultanées.
+Le Worker doit être public (sans connexion ChatGPT) pour que le lien d’invitation fonctionne. Les migrations restent versionnées et immuables. Pour une évolution du schéma, lancez `npm ci --prefix multiplayer`, puis `npm run --prefix multiplayer db:generate` après modification de `multiplayer/db/schema.mjs`. Ces dépendances servent uniquement à la génération du schéma ; le jeu et son serveur ne dépendent pas de Drizzle à l’exécution. La migration SQL historique dans `multiplayer/migrations/` reste utilisée pour initialiser le serveur Node local. Le serveur refuse les actions d’un tour ancien et mémorise les identifiants de requête récents : réessayer la même tentative ne retire pas une seconde carte. Les mises à jour atomiques de la base protègent aussi contre deux requêtes distinctes simultanées.
 
 ## Vérifier
 
@@ -65,3 +65,5 @@ Avec le serveur local actif et Chromium lancé avec `--remote-debugging-port=922
     node multiplayer/test/browser.cjs
 
 Ce test ouvre trois contextes de navigateur indépendants en 320, 360 et 390 px. Il crée/rejoint un salon, joue trois tentatives, compare les états, essaie une action hors tour par l’API, vérifie le blocage des commandes, l’actualisation et une coupure temporaire. `BUS_MP_QA_URL` change l’origine ; `BUS_QA_SCREENSHOTS` active les captures. Les vérifications mobiles sont en émulation, pas sur trois téléphones physiques.
+
+Le test `multiplayer/test/artifact.mjs` applique les migrations exportées dans une base vide avant de tester la création de salon, afin de détecter une archive privée de schéma ou de journal de migration.
