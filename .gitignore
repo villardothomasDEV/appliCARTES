@@ -4,3 +4,10 @@ le-bus.zip
 
 # Version statique générée
 dist/
+
+# Données locales des salons
+work/
+multiplayer/.output/
+
+# Outils de génération de schéma
+multiplayer/node_modules/

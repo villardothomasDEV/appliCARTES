@@ -54,3 +54,9 @@ Pour produire un dossier contenant uniquement les fichiers à héberger :
 Publiez le **contenu de `dist/`** sur un hébergeur statique HTTPS. Aucun build côté serveur ni variable d’environnement n’est nécessaire. `dist/` est généré à partir des sources et ignoré par Git ; la version locale à la racine reste utilisable.
 
 Autre possibilité sur GitHub après fusion de la pull request : **Settings → Pages → Deploy from a branch → main → /(root) → Save**. Une fois GitHub Pages publié, copiez l’URL HTTPS affichée dans cette page. Aucun compte n’est nécessaire pour les joueurs qui ouvrent ce lien.
+
+## Multijoueur — Test séparé
+
+Une version avec un téléphone par joueur est disponible dans `multiplayer/`. Consultez [sa documentation](multiplayer/README.md) pour le lobby, le serveur, les reconnexions, les tests et l’hébergement. Le serveur contrôle les cartes et les tours. La version actuelle reste indépendante ; le multijoueur ne fonctionne pas sur un simple serveur de fichiers statiques.
+
+Lien séparé de test : https://le-bus-multiplayer-test-villard.villardo-thomas.chatgpt.site/multiplayer/
